@@ -8,7 +8,7 @@ library(ggplot2,tydir, devtools)
 
 BiocManager::install(c("Rsamtools",
                        "GenomicAlignements",
-                       "TxDb.Hsapiens.UCSC.hg19.knownGene",
+                       "TxDb.Hsapiens.UCSC.hg38.knownGene",
                        "soGGi","rtracklayer","ChIPQC",
                        "ChIPseeker","rGREAT"))
 
@@ -74,6 +74,62 @@ fragLenPlot <- table(insertSizes) %>% data.frame %>% rename(InsertSize = insertS
 
 fragLenPlot + theme_bw()
 
+fragLenPlot + scale_y_continuous(trans = "log2") + theme_bw()
 
+fragLenPlot + geom_vline(xintercept = c(180, 247), colour = "red") + geom_vline(xintercept = c(315, 
+                                                                                               437), colour = "darkblue") + geom_vline(xintercept = c(100), colour = "darkgreen") + 
+  theme_bw()
+
+fragLenPlot + scale_y_continuous(trans = "log2") + geom_vline(xintercept = c(180, 
+                                                                             247), colour = "red") + geom_vline(xintercept = c(315, 437), colour = "darkblue") + 
+  geom_vline(xintercept = c(100), colour = "darkgreen") + theme_bw()
+
+# TSS sites
+
+## find TSS in human genome
+library(TxDb.Hsapiens.UCSC.hg38.knownGene)
+TSSs <- resize(genes(TxDb.Hsapiens.UCSC.hg38.knownGene), fix = "start", 1)
+TSSs
+
+## plotting ATACseq signal over TSS
+library(soGGi)
+
+# Nucleosome free
+nucFree <- regionPlot(bamFile = sortedBAM, testRanges = TSSs, style = "point", 
+                      format = "bam", paired = TRUE, minFragmentLength = 0, maxFragmentLength = 100, 
+                      forceFragment = 50)
+
+# Mononucleosome
+monoNuc <- regionPlot(bamFile = sortedBAM, testRanges = TSSs, style = "point", 
+                      format = "bam", paired = TRUE, minFragmentLength = 180, maxFragmentLength = 240, 
+                      forceFragment = 80)
+
+# Dinucleosome
+diNuc <- regionPlot(bamFile = sortedBAM, testRanges = TSSs, style = "point", 
+                    format = "bam", paired = TRUE, minFragmentLength = 315, maxFragmentLength = 437, 
+                    forceFragment = 160)
+
+# nucFree_gL <- nucFree monoNuc_gL <- monoNuc diNuc_gL <- diNuc
+# save(monoNuc_gL,nucFree_gL,diNuc_gL,file='ATAC_Data/ATAC_RData/gL_soGGiResults.RData')
+
+## plots
+library(soGGi)
+plotRegion(nucFree, outliers = 0.01)
+
+# isolate by insert size
+
+atacReads_Open <- atacReads[insertSizes < 100, ]
+atacReads_MonoNuc <- atacReads[insertSizes > 180 & insertSizes < 240, ]
+atacReads_diNuc <- atacReads[insertSizes > 315 & insertSizes < 437, ]
+
+# create BAM files
+openRegionBam <- gsub("\\.bam", "_openRegions\\.bam", sortedBAM)
+monoNucBam <- gsub("\\.bam", "_monoNuc\\.bam", sortedBAM)
+diNucBam <- gsub("\\.bam", "_diNuc\\.bam", sortedBAM)
+
+library(rtracklayer)
+export(atacReads_Open, openRegionBam, format = "bam")
+export(atacReads_MonoNuc, monoNucBam, format = "bam")
+# export(atacReads_Open,diNucBam,format = 'bam')
 
 
