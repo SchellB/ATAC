@@ -2,46 +2,77 @@
 ############################### ATACseq Valeria ################################
 
 
-# 01 - Data preprocessing
+# 01 - Regions ####
 
 wd <- getwd()
 
 # load the data using readxl
-library(readr)
-Data <- read.csv(paste0(wd,"/Data/Data.csv"))
+library(readxl)
+data_regions <- read_excel("Data/01W5Inserm_ATAC_mergedregs.xlsx", 
+                                          col_types = c("numeric", "text", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "text", "text", 
+                                                        "text", "text", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric", "numeric", "numeric", 
+                                                        "numeric"))
 
-# BiomaRt loading
-library("biomaRt")
+# 02 - Genes ####
 
-## set up data base
-listMarts()
-ensembl <- useMart("ensembl")
-ensembl <- useDataset("hsapiens_gene_ensembl", mart=ensembl)
+# Import Data
+library(readxl)
+data_genes <- read_excel("Data/01W5Inserm_ATAC_genes.xlsx", 
+                                     col_types = c("text", "text", "text", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "text", "numeric", "text", "text", 
+                                                   "text", "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "numeric", "numeric", 
+                                                   "numeric", "text", "numeric", "text", 
+                                                   "text", "text", "text", "numeric", 
+                                                   "text"))
 
-## filter by HGNC symbols
-filters <- c("entrezgene_id")
-
-## select attributes that we want from the query
-attributes <- c("hgnc_symbol", "entrezgene_id")
-
-## perform the query
-genes <- getBM(attributes=attributes, filters=filters, values=Data$Geneid, mart=ensembl)
-
-# renames the genes
-data <- merge(Data, genes, by.x = "Geneid",by.y="entrezgene_id")
-
+# 03 - Calculated DEG ###
 # process the data
 library(dplyr)
 library(tidyverse)
-data <- data %>% distinct(hgnc_symbol, .keep_all=TRUE)%>%drop_na() %>% column_to_rownames(var="hgnc_symbol") %>% dplyr::select(c(7:30))
+data <- data_genes  %>% column_to_rownames(var="Gene Name") %>% dplyr::select(c(30:46))
+patients <- gsub("_ATAC.*","",colnames(data))
+colnames(data) <- gsub(".*[[:digit:]][[:digit:]]_INSERM_","",patients)
 
 
 # create a metadata file
 Metadata <- data.frame(sample=colnames(data),
-                       group=c(rep("HD",6),rep("LR",5),rep("HR",6),rep("sAML",6),"NKalone"),
-                       category=c(rep("HD",6),rep("MDS",11),rep("AML",6),"NKalone"))
+                       group=c(rep("HR",6),rep("AML",5),rep("HD",5),"NKalone"))
 
-Metadata$group <- factor(Metadata$group, levels=c("HD","LR","HR","sAML", "NKalone"))
+Metadata$group <- factor(Metadata$group, levels=c("HD","HR","AML", "NKalone"))
 
 # load edgeR
 library(edgeR)
@@ -58,18 +89,14 @@ design <- model.matrix(~ 0+Metadata$group)
 # plot cpm against density
 library(ggplot2)
 ggplot(data=as.data.frame(cpm(DGE_list$counts)))+
-  geom_density(aes(X23_HD.1))+
-  geom_density(aes(x=X08_LR.5))+
-  geom_density(aes(x=X10_HR.1))+
-  geom_density(aes(x=X19_sAML.4))
+  geom_density(aes(x=`HR-1`))+
+  geom_density(aes(x=`sAML-1`))
+  #geom_density(aes(X=`HD-6`))
 
 # plot count distribution
 ggplot(data=as.data.frame(DGE_list$counts))+
-  geom_density(aes(X23_HD.1), color="blue")+
-  geom_density(aes(x=X08_LR.5))+
-  geom_density(aes(x=X10_HR.1), color="orange")+
-  geom_density(aes(x=X19_sAML.4), color="red")+
-  scale_x_continuous(limits=c(0,25))
+  geom_density(aes(x=log(`HR-1`)))+
+  geom_density(aes(x=log(`sAML-1`)))
 
 # filtering by expression
 keep <- filterByExpr(DGE_list, design, min.count = 5, min.total.count = 2,large.n = 6, min.prop=0.5)
@@ -79,18 +106,8 @@ DGE_list <- DGE_list[keep,]
 # plot cpm against density
 library(ggplot2)
 ggplot(data=as.data.frame(log(cpm(DGE_list$counts))))+
-  geom_density(aes(X23_HD.1), color="blue")+
-  geom_density(aes(x=X08_LR.5))+
-  geom_density(aes(x=X10_HR.1),color="orange")+
-  geom_density(aes(x=X19_sAML.4),color="red")
-
-# plot count distribution
-ggplot(data=as.data.frame(DGE_list$counts))+
-  geom_density(aes(X23_HD.1), color="blue")+
-  geom_density(aes(x=X08_LR.5))+
-  geom_density(aes(x=X10_HR.1), color="orange")+
-  geom_density(aes(x=X19_sAML.4), color="red")+
-  scale_x_continuous(limits=c(0,25))
+  geom_density(aes(x=`HR-1`))+
+  geom_density(aes(x=`sAML-1`))
 
 # perform TMM normalisation
 library(ggplot2)
@@ -112,10 +129,9 @@ DGE_norm$samples
 barplot(cpm(DGE_norm)*1e-6,ylab="Library size (millions)")
 
 # plot MDS
-col <- data.frame(group=Metadata$group, col=c(rep("blue",6),
-                                              rep("orange",5),
-                                              rep("red",6),
-                                              rep("green",6),
+col <- data.frame(group=Metadata$group, col=c(rep("orange",6),
+                                              rep("red",5),
+                                              rep("blue",5),
                                               "black"))
 plotMDS(DGE_norm, col=col$col)
 
@@ -142,7 +158,7 @@ calculateDEG <- function(name="AvsB",fit=fit, contrast=c(-1,1,0,0,0), wd=wd){
   AvsB <- contrasts.fit(fit, contrast=contrast)
   AvsB <- eBayes(AvsB)
   print(summary(decideTests(AvsB,method = "separate", adjust.method = "BH", p.value = 0.05,
-                      lfc = 1)))
+                            lfc = 1)))
   plotMD(AvsB)
   AvsB.table <- topTable(AvsB, sort.by = "P", n = Inf)
   print(head(AvsB.table, 20))
@@ -151,31 +167,28 @@ calculateDEG <- function(name="AvsB",fit=fit, contrast=c(-1,1,0,0,0), wd=wd){
   
 }
 
-## LR Vs HD
-LRvsHD <- calculateDEG(name="LRvsHD", fit=fit, contrast=c(-1,1,0,0,0), wd=wd)
 
 ## HR Vs HD
-HRvsHD<-calculateDEG(name="HRvsHD", fit=fit, contrast=c(-1,0,1,0,0), wd=wd)
+HRvsHD_ATAC<-calculateDEG(name="HRvsHD", fit=fit, contrast=c(-1,1,0,0), wd=wd)
 
 ## AML Vs HD
-AMLvsHD<-calculateDEG(name="AMLvsHD", fit=fit, contrast=c(-1,0,0,1,0), wd=wd)
-
-## LR Vs AML
-LRvsAML<-calculateDEG(name="LRvsAML", fit=fit, contrast=c(0,1,0,-1,0), wd=wd)
+AMLvsHD_ATAC<-calculateDEG(name="AMLvsHD", fit=fit, contrast=c(-1,0,1,0), wd=wd)
 
 ## HR Vs AML
-HRvsAML<-calculateDEG(name="HRvsAML", fit=fit, contrast=c(0,0,1,-1,0), wd=wd)
+HRvsAML_ATAC<-calculateDEG(name="HRvsAML", fit=fit, contrast=c(0,1,-1,0), wd=wd)
 
-## HR Vs LR
-HRvsLR<-calculateDEG(name="HRvsLR", fit=fit, contrast=c(0,-1,1,0,0), wd=wd)
+## HR&AML Vs HD
+HR_AMLvsHD_ATAC<-calculateDEG(name="HR_AMLvsHD", fit=fit, contrast=c(-1,0.5,0.5,0), wd=wd)
 
+
+# save DEG data
+save(HRvsHD_ATAC,AMLvsHD_ATAC,HRvsAML_ATAC,HR_AMLvsHD_ATAC, file="ATAC.Rdata")
 
 # 03 - Venn Dagram ####
 
 ## Versus HD
 # process the data
-DEG <- list(LR=subset(LRvsHD$genes,subset=abs(LRvsHD$logFC)>=1&LRvsHD$P.Value<0.05),
-            HR=subset(HRvsHD$genes,subset=abs(HRvsHD$logFC)>=1&HRvsHD$P.Value<0.05),
+DEG <- list(HR=subset(HRvsHD$genes,subset=abs(HRvsHD$logFC)>=1&HRvsHD$P.Value<0.05),
             AML=subset(AMLvsHD$genes,subset=abs(AMLvsHD$logFC)>=1&AMLvsHD$P.Value<0.05))
 
 devtools::install_github("yanlinlin82/ggvenn")
@@ -188,26 +201,9 @@ ggvenn(
   stroke_size = 0.5, set_name_size = 4, show_elements = FALSE, text_size=2,label_sep = "\n")
 
 # get output
-write.csv2(DEG[["LR"]], file=paste0(wd,"/Results/SignifLRvsHD.csv"))
 write.csv2(DEG[["HR"]], file=paste0(wd,"/Results/SignifHRvsHD.csv"))
 write.csv2(DEG[["AML"]], file=paste0(wd,"/Results/SignifAMLvsHD.csv"))
 
-## only patho
-# process the data
-DEG2 <- list(LRversusAML=subset(LRvsAML$genes,subset=abs(LRvsAML$logFC)>=1&LRvsAML$P.Val<0.05),
-            HRversusAML=subset(HRvsAML$genes,subset=abs(HRvsAML$logFC)>=1&HRvsAML$P.Val<0.05),
-            HRversusLR=subset(HRvsLR$genes,subset=abs(HRvsLR$logFC)>=1&HRvsLR$P.Val<0.05))
-
-ggvenn(
-  DEG2, 
-  fill_color =viridis(3),
-  show_percentage = FALSE,
-  stroke_size = 0.5, set_name_size = 4, show_elements = FALSE, text_size=2,label_sep = "\n")
-
-# getoutput
-write.csv2(DEG[["LRversusAML"]], file=paste0(wd,"/Results/SignifLRvsAML.csv"))
-write.csv2(DEG[["HRversusAML"]], file=paste0(wd,"/Results/SignifHRvsAML.csv"))
-write.csv2(DEG[["HRversusLR"]], file=paste0(wd,"/Results/SignifHRvsLR.csv"))
 
 # 04 - Volcanoplot ####
 
@@ -219,62 +215,53 @@ volcano <- function(table=table, name="name",title="title"){
   
   pdf(paste0(wd,"/Output/Volcano_",name,".pdf"))
   print(ggplot(data=table,
-         aes(x=logFC,
-             y=-log10(P.Value),
-             label=genes)) +
-    geom_point() +
-    theme_minimal() +
-    geom_text_repel(data=subset(table, abs(logFC)>1&P.Value<0.05), aes(x=logFC,
-                                                                              y=-log10(P.Value),label=genes),
-                    max.overlaps = 50, color="darkgrey") +
-    geom_vline(xintercept=c(-1, 1), col="red") +
-    geom_hline(yintercept=-log10(0.05), col="red")+
-    labs(title=title,
-         x="log2FC", y="-log10(Pvalue)")+
-    theme(plot.title = element_text(hjust = 0.5),
-          axis.title = element_text()))
+               aes(x=logFC,
+                   y=-log10(P.Value),
+                   label=genes)) +
+          geom_point() +
+          theme_minimal() +
+          geom_text_repel(data=subset(table, abs(logFC)>1&P.Value<0.05), aes(x=logFC,
+                                                                             y=-log10(P.Value),label=genes),
+                          max.overlaps = 50, color="darkgrey") +
+          geom_vline(xintercept=c(-1, 1), col="red") +
+          geom_hline(yintercept=-log10(0.05), col="red")+
+          labs(title=title,
+               x="log2FC", y="-log10(Pvalue)")+
+          theme(plot.title = element_text(hjust = 0.5),
+                axis.title = element_text()))
   
   print(ggplot(data=table,
-         aes(x=logFC,
-             y=-log10(P.Value),
-             label=genes)) +
-    geom_point() +
-    theme_minimal() +
-    geom_point(data=subset(table, abs(logFC)>1&P.Value<0.05),
-               aes(x=logFC, y=-log10(P.Value)),color="red")+
-    geom_vline(xintercept=c(-1, 1), col="red") +
-    geom_hline(yintercept=-log10(0.05), col="red")+
-    labs(title=title,
-         x="log2FC", y="-log10(Pvalue)")+
-    theme(plot.title = element_text(hjust = 0.5),
-          axis.title = element_text()))
+               aes(x=logFC,
+                   y=-log10(P.Value),
+                   label=genes)) +
+          geom_point() +
+          theme_minimal() +
+          geom_point(data=subset(table, abs(logFC)>1&P.Value<0.05),
+                     aes(x=logFC, y=-log10(P.Value)),color="red")+
+          geom_vline(xintercept=c(-1, 1), col="red") +
+          geom_hline(yintercept=-log10(0.05), col="red")+
+          labs(title=title,
+               x="log2FC", y="-log10(Pvalue)")+
+          theme(plot.title = element_text(hjust = 0.5),
+                axis.title = element_text()))
   
   dev.off()
   
 }
-
-## LR vs HD
-volcano(table=LRvsHD,name="LRvsHD",title = "Low Risk MDS versus HD")
-
 
 ## HR vs HD
 volcano(table=HRvsHD,name="HRvsHD",title = "High Risk MDS versus HD")
 
 
 ## AML vs HD
-volcano(table=AMLvsHD,name="AMLvsHD",title = "sAML MDS versus HD")
-
-
-## LR vs AML
-volcano(table=LRvsAML,name="LRvsAML",title = "Low Risk MDS versus AML")
-
+volcano(table=AMLvsHD,name="AMLvsHD",title = "sAML versus HD")
 
 ## HR vs AML
 volcano(table=HRvsAML,name="HRvsAML",title = "High Risk MDS versus AML")
 
 
-## HR vs LR
-volcano(table=HRvsLR,name="HRvsLR",title = "High Risk MDS versus Low Risk MDS")
+## HR&AML vs HD
+volcano(table=HR_AMLvsHD,name="HR&AMLvsHD",title = "High Risk MDS & AML versus HD")
 
 # 05 - saving data ####
 
@@ -289,9 +276,7 @@ data <- data %>% column_to_rownames('...1')
 ## variables
 library(viridis)
 cols = list("HD"="blue",
-            "LR"="green",
             "HR"="orange","sAML"="red")
-
 
 ## Heatmap
 library(ComplexHeatmap)
@@ -327,24 +312,22 @@ DEG_heatmap <- function(data,table,cond,Metadata,cols,name){
 DEG_heatmap(data=data, Metadata = Metadata, table=HRvsHD,
             name="HRvsHD",cols=cols,cond=c("HD","HR"))
 
-# LR vs HD
-DEG_heatmap(data=data, Metadata = Metadata, table=LRvsHD,
-            name="LRvsHD",cols=cols,cond=c("HD","LR"))
-
 # AML vs HD
 DEG_heatmap(data=data, Metadata = Metadata, table=AMLvsHD,
             name="AMLvsHD",cols=cols,cond=c("HD","AML"))
-
-
-# LR vs AML
-DEG_heatmap(data=data, Metadata = Metadata, table=LRvsAML,
-            name="LRvsAML",cols=cols,cond=c("LR","AML"))
 
 # HR vs AML
 DEG_heatmap(data=data, Metadata = Metadata, table=HRvsAML,
             name="HRvsAML",cols=cols,cond=c("HR","AML"))
 
-# HR vs LR
-DEG_heatmap(data=data, Metadata = Metadata, table=HRvsLR,
-            name="HRvsLR",cols=cols,cond=c("HR","LR"))
+# HR & AML vs HD
+DEG_heatmap(data=data, Metadata = Metadata, table=HR_AMLvsHD,
+            name="HR&AMLvsHD",cols=cols,cond=c("HR","AML","LR"))
+
+
+
+
+
+
+
 
