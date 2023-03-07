@@ -4,16 +4,19 @@
 
 # 01 - Starting ####
 
+# working directory
+wd <- getwd()
+
 # load data
 library(readr)
 library(dplyr)
+library(tidyverse)
 ATAC <- read_csv2("Results/Normalized.Counts.csv")
-data <- ATAC %>% column_to_rownames("genes")
+data <- ATAC %>% column_to_rownames("...1")
 
 # metadata
 Metadata <- data.frame(sample=colnames(data),
-                       group=c(rep("HD",6),rep("LR",5),rep("HR",6),rep("sAML",6),"NKalone"),
-                       category=c(rep("HD",6),rep("MDS",11),rep("AML",6),"NKalone"))
+                       group=c(rep("HR",6),rep("sAML",5),rep("HD",5),"NKalone"))
 
 
 # correlation plot
@@ -29,7 +32,9 @@ chart.Correlation(data, histogram=TRUE, pch=19)
 
 # 02 - PCA ####
 # PCA
-res.pca <- PCA(data)
+library(FactoMineR)
+library(factoextra)
+res.pca <- PCA(t(data))
 
 eigenvalues <- res.pca$eig
 
@@ -51,30 +56,21 @@ fviz_pca_ind(res.pca, col.ind="cos2") +
                         high="red", midpoint=0.50)
 
 # select genes with high cos2
-gene.contrib.table <- as.data.frame(res.pca$ind$contrib)
-genes.interest <- rownames(subset(gene.contrib.table, subset = gene.contrib.table$Dim.1>0.5))
+gene.contrib.table <- as.data.frame(res.pca$var$contrib)
+genes.interest <- top_n(gene.contrib.table,100,Dim.1)
 
 # do pca on these genes
-interest.data <- subset(data, subset=rownames(data)%in%genes.interest)
+interest.data <- subset(data, subset=rownames(data)%in%rownames(genes.interest))
 
-new.pca <- PCA(t(interest.data))
+# 03 - ploting genes of interest ####
+library(tidyr)
+long_df <- interest.data %>% rownames_to_column("genes")%>% gather(Key, Value,-genes)
 
-
-# look variance explained
-fviz_screeplot(new.pca, ncp=10)
-
-# variable plot
-fviz_pca_var(new.pca, col.var="contrib")
-
-# individual plot
 library(viridis)
-fviz_pca_ind(new.pca, col.ind=Metadata$group, palette=viridis(5), geom="text")
-
-# biplot
-fviz_pca_biplot(new.pca, col.ind=Metadata$group, palette=viridis(5), geom="point",
-                alpha.var=0.2, repel=TRUE)+
+ggplot(data = long_df, aes(y=genes,x=Value))+
+  geom_point()+
+  scale_color_manual(values = viridis(3), labels=Metadata$group, guide = "legend")+
   theme_minimal()
-
 
 # 03 - UMAP ####
 
@@ -89,7 +85,7 @@ layout <-umap[["layout"]]
 
 layout <- data.frame(layout) 
 
-layout$group <- c(rep("HD",6),rep("LR",5),rep("HR",6),rep("AML",6),"NK")
+layout$group <- c(rep("HR",6),rep("sAML",5),rep("HD",5),"NK")
 
 
 fig <- plot_ly(layout, x = ~X1, y = ~X2, color = ~layout$group, colors = c('#EF553B','#636EFA',

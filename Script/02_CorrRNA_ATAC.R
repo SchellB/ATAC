@@ -10,11 +10,12 @@ wd <- getwd()
 load("ATAC.Rdata")
 
 # RNA data
-load("C:/Users/beren/Documents/RNAseqNKValeria/RNAseqTables.Rdata")
-
+#load("C:/Users/beren/Documents/RNAseqNKValeria/RNAseqTables.Rdata")
+load("~/Documents/Github/RNAseqNKValeria/RNAseqTables.Rdata")
 
 # 02 - plot ####
 library(ggplot2)
+library(ggrepel)
 
 # funciton
 
@@ -63,12 +64,13 @@ data2 <- ATAC %>% group_by(X) %>% mutate(
   meanmetAML= mean(sAML.1,sAML.2,sAML.4,sAML.5,sAML.6))
 
 # RNA data
-RNA <- read.csv2("C:/Users/beren/Documents/RNAseqNKValeria/Results/Normalized.Counts.csv")
+#RNA <- read.csv2("C:/Users/beren/Documents/RNAseqNKValeria/Results/Normalized.Counts.csv")
+RNA <- read.csv2("~/Documents/Github/RNAseqNKValeria/Results/Normalized.Counts.csv")
 data1 <- RNA %>% group_by(X) %>% mutate(
-  meanexpHD= (X23_HD.1+X24_HD.2+X25_HD.3+X01_HD.4+X02_HD.5+X03_HD.6),
-  meanexpLR= mean(X04_LR.1+X05_LR.2+X07_LR.4+X08_LR.5+X09_LR.6),
-  meanexpHR= mean(X10_HR.1+X11_HR.2+X12_HR.3+X13_HR.4+X14_HR.5+X15_HR.6),
-  meanexpAML= mean(X16_sAML.1+X17_sAML.2+X18_sAML.3+X19_sAML.4+X20_sAML.5+X21_sAML.6)
+  meanexpHD= (HD.1_RNA+HD.2_RNA+HD.3_RNA+HD.4_RNA+HD.5_RNA+HD.6_RNA),
+  meanexpLR= mean(LR.1_RNA+ LR.2_RNA+LR.4_RNA+LR.5_RNA+LR.6_RNA),
+  meanexpHR= mean(HR.1_RNA+HR.2_RNA+HR.3_RNA+HR.4_RNA+HR.5_RNA+HR.6_RNA),
+  meanexpAML= mean(sAML.1_RNA+sAML.2_RNA+sAML.3_RNA+sAML.4_RNA+sAML.5_RNA+sAML.6_RNA)
 )
 
 # expression
@@ -80,28 +82,55 @@ cols <- data.frame("HD"="blue","HR"="orange","sAML"="red")
 
 # plot
 ggplot(data = data)+
-  geom_point(aes(x = X23_HD.1, y=HD.1, color="HD"))+
-  geom_point(aes(x = X24_HD.2, y=HD.2, color="HD"))+
-  geom_point(aes(x = X25_HD.3, y=HD.3, color="HD"))+
-  geom_point(aes(x = X01_HD.4, y=HD.4, color="HD"))+
-  geom_point(aes(x = X03_HD.6, y=HD.6, color="HD"))+
+  geom_point(aes(x = HD.1_RNA, y=HD.1, color="HD"))+
+  geom_point(aes(x = HD.2_RNA, y=HD.2, color="HD"))+
+  geom_point(aes(x = HD.3_RNA, y=HD.3, color="HD"))+
+  geom_point(aes(x = HD.4_RNA, y=HD.4, color="HD"))+
+  geom_point(aes(x = HD.6_RNA, y=HD.6, color="HD"))+
   geom_smooth(aes(x=meanexpHD,y=meanmetHD,color="HD"))+
-  geom_point(aes(x = X10_HR.1, y=HR.1, color="HR"))+
-  geom_point(aes(x = X11_HR.2, y=HR.2, color="HR"))+
-  geom_point(aes(x = X12_HR.3, y=HR.3, color="HR"))+
-  geom_point(aes(x = X13_HR.4, y=HR.4, color="HR"))+
-  geom_point(aes(x = X14_HR.5, y=HR.5, color="HR"))+
-  geom_point(aes(x = X15_HR.6, y=HR.6, color="HR"))+
+  geom_point(aes(x = HR.1_RNA, y=HR.1, color="HR"))+
+  geom_point(aes(x = HR.2_RNA, y=HR.2, color="HR"))+
+  geom_point(aes(x = HR.3_RNA, y=HR.3, color="HR"))+
+  geom_point(aes(x = HR.4_RNA, y=HR.4, color="HR"))+
+  geom_point(aes(x = HR.5_RNA, y=HR.5, color="HR"))+
+  geom_point(aes(x = HR.6_RNA, y=HR.6, color="HR"))+
   geom_smooth(aes(x=meanexpHR,y=meanmetHR,color="HR"))+
-  geom_point(aes(x = X16_sAML.1, y=sAML.1, color="sAML"))+
-  geom_point(aes(x = X17_sAML.2, y=sAML.2, color="sAML"))+
-  geom_point(aes(x = X19_sAML.4, y=sAML.4, color="sAML"))+
-  geom_point(aes(x = X20_sAML.5, y=sAML.5, color="sAML"))+
-  geom_point(aes(x = X21_sAML.6, y=sAML.6, color="sAML"))+
+  geom_point(aes(x = sAML.1_RNA, y=sAML.1, color="sAML"))+
+  geom_point(aes(x = sAML.2_RNA, y=sAML.2, color="sAML"))+
+  geom_point(aes(x = sAML.4_RNA, y=sAML.4, color="sAML"))+
+  geom_point(aes(x = sAML.5_RNA, y=sAML.5, color="sAML"))+
+  geom_point(aes(x = sAML.6_RNA, y=sAML.6, color="sAML"))+
   geom_smooth(aes(x=meanexpAML,y=meanmetAML,color="sAML"))+
   theme_minimal()+
-  scale_x_continuous(limits=c(0,5000))
+  scale_x_continuous(limits=c(0,5000))+
+  scale_y_continuous(limits=c(0,100))+
+  labs(y="chromatin accessibility", x="gene expression")
 
 
+# 04 - DEG --> opening ####
 
+data <- subset(ATAC, X%in% HRvsHD[abs(HRvsHD$logFC)>=1&HRvsHD$P.Value<=0.05,"genes"])
+library(tidyr)
+long_df <- data %>% gather(Key, Value,-X) %>% mutate(group=case_when(
+  grepl("HR", Key) ~ "HR",
+  grepl("HD", Key) ~ "HD",
+  grepl("sAML", Key) ~ "sAML",
+  .default = "NK alone"
+))
+
+data <- merge(long_df,HRvsHD, by.x="X",by.y = "genes")
+
+library(viridis)
+ggplot(data = data, aes(y=X,x=Value, color=group))+
+  geom_point()+
+  scale_color_manual(values = viridis(3), labels=Mgroup, guide = "legend")+
+  theme_minimal()
+
+ggplot(data = data)+ facet_wrap(~X)+
+  geom_point(aes(x = logFC, y=-log10(P.Value)),color="blue",alpha=0.3)+
+  theme_minimal()+
+  labs(title=title,
+       x="log2FC", y="-log10(Pvalue)")+
+  theme(plot.title = element_text(hjust = 0.5),
+        axis.title = element_text())
 

@@ -14,7 +14,7 @@ ATAC <- read_csv2(paste0(wd,"/Results/Normalized.Counts.csv"))
 data <- ATAC %>% column_to_rownames("...1")
 
 # ATACseq DEG loading
-load(paste0(wd,"/Script/ATACseqDEG.Rdata"))
+load("ATAC.Rdata")
 
 # 02 - PathfindR funciton #####
 
@@ -45,25 +45,19 @@ pathenrich <- function(data,table, gene_sets="KEGG",
 }
 
 
-# 03 - Performing nerichment ####
+# 03 - Performing enrichment ####
 
 ## HR vs HD
-pathenrich(data=data, table = HRvsHD, name="HRvsHD", gene_sets="KEGG",wd=wd)
-
-## LR vs HD
-pathenrich(data=data, table = LRvsHD, name="LRvsHD",gene_sets="KEGG",wd=wd)
+pathenrich(data=data, table = HRvsHD_ATAC, name="HRvsHD", gene_sets="GO-BP",wd=wd)
 
 ## AML vs HD
-pathenrich(data=data, table = AMLvsHD, name="AMLvsHD", gene_sets="KEGG",wd=wd)
-
-## LR vs AML
-pathenrich(data=data, table = LRvsAML, name="LRvsAML", gene_sets="KEGG",wd=wd)
+pathenrich(data=data, table = AMLvsHD_ATAC, name="AMLvsHD", gene_sets="GO-BP",wd=wd)
 
 ## HR vs AML
-pathenrich(data=data, table = HRvsAML, name="HRvsAML", gene_sets="KEGG",wd=wd)
+pathenrich(data=data, table = HRvsAML_ATAC, name="HRvsAML", gene_sets="GO-BP",wd=wd)
 
-## HR vs LR
-pathenrich(data=data, table = HRvsLR, name="HRvsLR", gene_sets="KEGG",wd=wd)
+## HR&AML vs HD
+pathenrich(data=data, table = HR_AMLvsHD_ATAC, name="HR_AMLvsHD", gene_sets="GO-All",wd=wd)
 
 
 
