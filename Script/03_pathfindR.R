@@ -48,16 +48,16 @@ pathenrich <- function(data,table, gene_sets="KEGG",
 # 03 - Performing enrichment ####
 
 ## HR vs HD
-pathenrich(data=data, table = HRvsHD_ATAC, name="HRvsHD", gene_sets="GO-BP",wd=wd)
+pathenrich(data=data, table = HRvsHD_ATAC, name="HRvsHD", gene_sets="GO-CC",wd=wd)
 
 ## AML vs HD
-pathenrich(data=data, table = AMLvsHD_ATAC, name="AMLvsHD", gene_sets="GO-BP",wd=wd)
+pathenrich(data=data, table = AMLvsHD_ATAC, name="AMLvsHD", gene_sets="GO-CC",wd=wd)
 
 ## HR vs AML
-pathenrich(data=data, table = HRvsAML_ATAC, name="HRvsAML", gene_sets="GO-BP",wd=wd)
+pathenrich(data=data, table = HRvsAML_ATAC, name="HRvsAML", gene_sets="GO-CC",wd=wd)
 
 ## HR&AML vs HD
-pathenrich(data=data, table = HR_AMLvsHD_ATAC, name="HR_AMLvsHD", gene_sets="GO-All",wd=wd)
+pathenrich(data=data, table = HR_AMLvsHD_ATAC, name="HR_AMLvsHD", gene_sets="GO-CC",wd=wd)
 
 
 
