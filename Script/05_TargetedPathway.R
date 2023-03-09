@@ -63,5 +63,5 @@ library(ggplot2)
 
 ggplot(data = table,aes(x=ValueATAC,y=ValueRNA,color=group))+
   geom_point()+theme_minimal()+
-  facet_wrap(~X)+ scale_color_manual(values=viridis(4))
+  facet_wrap(~X,scales = "free_y")+ scale_color_manual(values=viridis(4))
 
