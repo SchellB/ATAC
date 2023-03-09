@@ -266,6 +266,7 @@ volcano(table=HR_AMLvsHD,name="HR&AMLvsHD",title = "High Risk MDS & AML versus H
 # 05 - saving data ####
 
 save(HRvsAML,HRvsHD,HRvsLR, LRvsAML, LRvsHD, AMLvsHD, DGE_norm, file=paste0(wd, "/Script/ATACseqDEG.Rdata"))
+load("ATAC.Rdata")
 
 # 06 - Heatmap ####
 
@@ -286,7 +287,7 @@ library(rlist)
 DEG_heatmap <- function(data,table,cond,Metadata,cols,name){
   
   DEGgenes <- subset(table, abs(logFC)>1&P.Value<0.05) # DEG
-  df <- data %>% dplyr::filter(rownames(data)%in% DEGgenes$genes) %>% select(contains(c(cond))) # Expr
+  df <- data %>% dplyr::filter(rownames(data)%in% DEGgenes$genes) %>% dplyr::select(contains(c(cond))) # Expr
   Meta <- Metadata %>% filter(sample%in% colnames(df))%>% arrange(group) # Metadata
   
   col_fun = colorRamp2(c(0,10, 50, 100, 150), c("#FDE725FF","#75D054FF","#55C667FF","#404688FF","#440154FF"))
@@ -321,8 +322,8 @@ DEG_heatmap(data=data, Metadata = Metadata, table=HRvsAML,
             name="HRvsAML",cols=cols,cond=c("HR","AML"))
 
 # HR & AML vs HD
-DEG_heatmap(data=data, Metadata = Metadata, table=HR_AMLvsHD,
-            name="HR&AMLvsHD",cols=cols,cond=c("HR","AML","LR"))
+DEG_heatmap(data=data, Metadata = Metadata, table=HR_AMLvsHD_ATAC,
+            name="HR&AMLvsHD",cols=cols,cond=c("HR","AML","HD"))
 
 
 
