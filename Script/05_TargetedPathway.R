@@ -21,6 +21,7 @@ colnames(RNA) <- c("X",gsub(".*_","",colnames(RNA[,2:length(RNA)])))
 # load package
 library(KEGGREST)
 library(org.Hs.eg.db)
+library(dplyr)
 
 # find all pathways
 hsa_path_eg  <- keggLink("pathway", "hsa") %>% 
@@ -43,6 +44,7 @@ hsa_pathways <- keggList("pathway", "hsa") %>%
 genes <- hsa_kegg_anno[hsa_kegg_anno$pathway=="path:hsa04650",]
 
 # get the expression from the genes
+library(tidyr)
 table_rna <- RNA[RNA$X%in%genes$symbol,]
 table_rna <- table_rna %>% gather(Key, Value,-X)
 
@@ -60,8 +62,10 @@ table <- merge(table_atac,table_rna,by=c("X","Key"), suffixes=c("ATAC","RNA")) %
 
 # plot
 library(ggplot2)
+library(viridis)
 
-ggplot(data = table,aes(x=ValueATAC,y=ValueRNA,color=group))+
+ggplot(data = table,aes(x=group,y=ValueRNA,color=ValueATAC))+
   geom_point()+theme_minimal()+
-  facet_wrap(~X,scales = "free_y")+ scale_color_manual(values=viridis(4))
+  facet_wrap(~X,scales = "free_y")+ scale_color_viridis()+
+  theme(axis.text.x=element_text(angle = 60))
 
